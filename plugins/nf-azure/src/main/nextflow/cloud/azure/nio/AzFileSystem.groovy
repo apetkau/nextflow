@@ -204,8 +204,11 @@ class AzFileSystem extends FileSystem {
         final client = path.blobClient()
 
         try {
+            log.debug "Reading size of path=${path}"
             final size = client.getProperties().getBlobSize()
+            log.debug "Finished reading size=${size} of path=${path}, opening input stream"
             final channel = Channels.newChannel( client.openInputStream() )
+            log.debug "Finished opening inputstream of path=${path}"
             return new AzReadableByteChannel(channel, size)
         }
         catch (BlobStorageException e) {

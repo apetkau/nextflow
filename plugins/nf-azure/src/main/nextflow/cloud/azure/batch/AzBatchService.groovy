@@ -112,6 +112,7 @@ class AzBatchService implements Closeable {
     AzBatchService(AzBatchExecutor executor) {
         assert executor
         this.config = executor.config
+        log.debug "Creating custom nmlpatch of AzBatchService"
     }
 
     protected AzVmPoolSpec getPoolSpec(String poolId) {

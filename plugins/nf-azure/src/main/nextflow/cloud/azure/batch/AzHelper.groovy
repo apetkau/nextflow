@@ -30,6 +30,9 @@ import com.azure.storage.common.sas.AccountSasPermission
 import com.azure.storage.common.sas.AccountSasResourceType
 import com.azure.storage.common.sas.AccountSasService
 import com.azure.storage.common.sas.AccountSasSignatureValues
+import com.azure.storage.common.policy.RequestRetryOptions
+import com.azure.storage.common.policy.RetryPolicyType
+import com.azure.storage.common.policy.RequestRetryPolicy
 import groovy.transform.CompileStatic
 import groovy.transform.Memoized
 import groovy.util.logging.Slf4j
@@ -175,10 +178,25 @@ class AzHelper {
         final credential = new StorageSharedKeyCredential(accountName, accountKey);
         final endpoint = String.format(Locale.ROOT, "https://%s.blob.core.windows.net", accountName);
 
-        return new BlobServiceClientBuilder()
+        Map<String,String> env = new HashMap<>(System.getenv())
+        Integer maxTries = env.get("NXF_AZURE_REQUEST_RETRY_COUNT") ? env.get("NXF_AZURE_REQUEST_RETRY_COUNT") as Integer : 10
+        Integer tryTimeoutInSeconds = env.get("NXF_AZURE_REQUEST_RESPONSE_TIMEOUT_SECONDS") ? env.get("NXF_AZURE_REQUEST_RESPONSE_TIMEOUT_SECONDS") as Integer : 60
+        log.debug "maxTries=${maxTries}"
+        log.debug "tryTimoutInSecions=${tryTimeoutInSeconds}"
+
+        BlobServiceClient blobServiceClient = new BlobServiceClientBuilder()
                 .endpoint(endpoint)
                 .credential(credential)
+                .retryOptions(new RequestRetryOptions(RetryPolicyType.EXPONENTIAL, maxTries, tryTimeoutInSeconds, null, null, null))
                 .buildClient()
+
+        log.debug "Created blobServiceClient=${blobServiceClient}"
+        for (int i = 0; i < blobServiceClient.getHttpPipeline().getPolicyCount(); i++) {
+            def policy = blobServiceClient.getHttpPipeline().getPolicy(i)
+            log.debug "In blobServcieClient, httpPipeline policy number ${i} = ${policy}"
+        }
+
+        return blobServiceClient
     }
 
     @Memoized

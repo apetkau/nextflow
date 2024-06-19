@@ -116,6 +116,7 @@ class AzBatchTaskHandler extends TaskHandler implements FusionAwareTask {
         final done = taskState0(taskKey)==TaskState.COMPLETED
         if( done ) {
             // finalize the task
+            log.debug "Finalizing task=${taskKey}"
             task.exitStatus = readExitFile()
             task.stdout = outputFile
             task.stderr = errorFile
@@ -124,6 +125,7 @@ class AzBatchTaskHandler extends TaskHandler implements FusionAwareTask {
             if (info.result() == TaskExecutionResult.FAILURE)
                 task.error = new ProcessUnrecoverableException(info.failureInfo().message())
             deleteTask(taskKey, task)
+            log.debug "Finished finalizing task=${taskKey}"
             return true
         }
         return false
@@ -169,7 +171,10 @@ class AzBatchTaskHandler extends TaskHandler implements FusionAwareTask {
 
     protected int readExitFile() {
         try {
-            exitFile.text as Integer
+            log.debug "Begin reading exitFile for task=${taskKey}"
+            def exitValue = exitFile.text as Integer
+            log.debug "Finished reading exitFile for task=${taskKey}, exitValue=${exitValue}"
+            return exitValue
         }
         catch( Exception e ) {
             log.debug "[AZURE BATCH] Cannot read exit status for task: `$task.name` | ${e.message}"
@@ -186,7 +191,9 @@ class AzBatchTaskHandler extends TaskHandler implements FusionAwareTask {
 
     @Override
     TraceRecord getTraceRecord() {
+        log.debug "Begin reading traceRecord for task=${taskKey}"
         def result = super.getTraceRecord()
+        log.debug "Finished reading traceRecord for task=${taskKey}"
         if( taskKey ) {
             result.put('native_id', taskKey.keyPair())
             result.machineInfo = getMachineInfo()
